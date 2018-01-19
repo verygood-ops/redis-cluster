@@ -1,0 +1,17 @@
+---
+## Tasks needed for setup redis cluster
+- name: Install redis gem
+  package:
+    name: rubygem-redis
+
+- name: Install redis-trib from localfile.
+  copy:
+    src: redis-trib.rb
+    dest: /usr/bin/redis-trib.rb
+    mode: 0755
+
+- name: Install redis-discovery from localfile.
+  copy:
+    src: redis-discovery.sh
+    dest: /usr/bin/redis-discovery.sh
+    mode: 0755
