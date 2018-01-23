@@ -1,8 +1,17 @@
 ---
 ## Tasks needed for setup redis cluster
+- name: Install fresh ruby repo
+  apt_repository:
+    repo: "ppa:brightbox/ruby-ng"
+    state: present
+
+- name: Install ruby 2.3
+  apt:
+    name: ruby2.3
+
 - name: Install redis gem
-  package:
-    name: rubygem-redis
+  gem:
+    name: redis
 
 - name: Install redis-trib from localfile.
   copy:
@@ -15,3 +24,6 @@
     src: redis-discovery.sh
     dest: /usr/bin/redis-discovery.sh
     mode: 0755
+
+- name: Run cluster discovery script
+  shell: redis-discovery.sh >> /var/log/redis-discovery.log

@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-TRIB="/home/ubuntu/redis-4.0.6/src/redis-trib.rb"
+TRIB="/usr/bin/redis-trib.rb"
 
 # exit if node already in formed cluster
 [ $($TRIB check localhost:6379 | grep -c [M]) -ge 2 ] && exit 0
+
+while true; do
 
 PRE_LOG="redis-ha:"
 masters=""
@@ -12,18 +14,24 @@ asSLAVE="--slave"
 # get locat IP
 LOCAL_ADDR=$(ifconfig eth0 | grep -w inet | egrep -o "addr:([0-9]{1,3}[\.]){3}[0-9]{1,3}" | cut -d ':' -f2)
 echo $PRE_LOG LOCAL_ADDR=$LOCAL_ADDR
+
 # get IPs of all nodes
-ADDRS="$(AWS_DEFAULT_REGION=us-west-2 aws ec2 describe-instances --query "Reservations[].Instances[].[InstanceId,PrivateIpAddress,Tags[?Key=='Name'].Value]" --output=text | grep -i -B1 redis | egrep -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" | sort -V )" 
+ADDRS="$(AWS_DEFAULT_REGION=us-west-2 aws ec2 describe-instances --query "Reservations[].Instances[].[InstanceId,PrivateIpAddress,Tags[?Key=='Name'].Value]" --output=text | grep -i -B1 redis | egrep -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" | sort -V | uniq )"
 echo $PRE_LOG ADDRS=$ADDRS
+
 # which node should be first master
 FIRST="$(echo $ADDRS | cut -d ' ' -f1)"
 echo $PRE_LOG FIRST=$FIRST
 
 for addr in $ADDRS; do
   # find nodes already in cluster
+  echo $PRE_LOG Cheking $addr
   masters=$($TRIB check $addr:6379 | grep -c '[M]')
+  echo $PRE_LOG Found $masters masters
+  [ -z "$master" ] && master=0
   # node with 3 or more masters attached will be node to connect as slave
   if [ $masters -ge 3 ]; then
+    echo Looks like cluster found on $addr
     MASTER="$addr"
     asSLAVE="--slave"
   else 
@@ -35,35 +43,52 @@ for addr in $ADDRS; do
   fi
 done
 
+NODES=""
+
 # if no cluster found 
 if [ -z "$MASTER" ]; then
- # check if  this node should create cluster
- echo $PRE_LOG No cluster found. Checking if I should create one
- if [ "$LOCAL_ADDR" = "$FIRST" ]; then 
-  echo $PRE_LOG Yes, I will be the first node in cluster
-  # split existing nodes to future masters and slaves
-  for addr in $ADDRS; do
-    [ $(echo $NODES | wc -w) -le 2 ] && NODES="$NODES $addr:6379" || SLAVES="$SLAVES $addr:6379"
-  done
-  # check if there's enough nodes to create replicas
-  if [ $(echo $ADDRS | wc -w) -le 5 ]; then
-    echo $PRE_LOG Not enough nodes to init cluster with replicas
-    REPLICAS=0 
-    SLAVES=""
-  else
-    echo $PRE_LOG Found enough nodes to init cluster with replicas
-    REPLICAS=1
+  # check if  this node should create cluster
+  echo $PRE_LOG No cluster found. Checking if I should create one
+  if [ "$LOCAL_ADDR" = "$FIRST" ]; then
+    echo $PRE_LOG Yes, I will be the first node in cluster
+    # split existing nodes to future masters and slaves
+    for addr in $ADDRS; do
+      [ $(echo $NODES | wc -w) -le 2 ] && NODES="$NODES $addr:6379" || SLAVES="$SLAVES $addr:6379"
+    done
+    # check if there are enough nodes to create replicas
+    if [ $(echo $ADDRS | wc -w) -le 5 ]; then
+      echo $PRE_LOG Not enough nodes to init cluster with replicas
+      REPLICAS=0 
+      SLAVES=""
+    else
+      echo $PRE_LOG Found enough nodes to init cluster with replicas
+      REPLICAS=1
+    fi
+    # create the cluster
+    if [ $(echo $NODES | wc -w) -ge 3 ]; then
+      echo $PRE_LOG Lets create cluster
+      echo $PRE_LOG $TRIB create --replicas $REPLICAS $NODES $SLAVES
+      $TRIB create --replicas $REPLICAS $NODES $SLAVES || exit $?
+      if [ -n $SLAVES -a $REPLICAS -eq 0 ]; then
+        echo $PRE_LOG Lets also add other nodes found as replicas
+        $TRIB add-node --slave $SLAVES $MASTER:6379 || exit $?
+      fi
+      # Exit successfuly
+      exit 0
+    else
+      echo $PRE_LOG Not enough nodes to init cluster even without replicas
+    fi
   fi
-  # create the cluster
-  echo $PRE_LOG Lets create cluster
-  $TRIB create --replicas $REPLICAS $NODES $SLAVES
-  if [ -n $SLAVES -a $REPLICAS -eq 0 ]; then
-    echo $PRE_LOG Lets also add other nodes found as replicas
-    $TRIB add-node --slave $SLAVES $MASTER:6379
-  fi  
- fi
 # if some cluster found - join it
 else 
   echo $PRE_LOG Joining to existing cluster
   $TRIB add-node $asSLAVE $LOCAL_ADDR:6379 $MASTER:6379
+  # Exit successfuly
+  exit 0
 fi
+
+echo $PRE_LOG Waiting for next chance to make cluster
+echo $PRE_LOG ---------------------------------------
+sleep 10
+
+done
