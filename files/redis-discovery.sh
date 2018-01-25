@@ -15,9 +15,18 @@ asSLAVE="--slave"
 LOCAL_ADDR=$(ifconfig eth0 | grep -w inet | egrep -o "addr:([0-9]{1,3}[\.]){3}[0-9]{1,3}" | cut -d ':' -f2)
 echo $PRE_LOG LOCAL_ADDR=$LOCAL_ADDR
 
+ADDRS=""
 # get IPs of all nodes
-ADDRS="$(AWS_DEFAULT_REGION=us-west-2 aws ec2 describe-instances --query "Reservations[].Instances[].[InstanceId,PrivateIpAddress,Tags[?Key=='Name'].Value]" --output=text | grep -i -B1 redis | egrep -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" | sort -V | uniq )"
-echo $PRE_LOG ADDRS=$ADDRS
+ADDRPULL="$(AWS_DEFAULT_REGION=us-west-2 aws ec2 describe-instances --query "Reservations[].Instances[].[InstanceId,PrivateIpAddress,Tags[?Key=='Name'].Value]" --output=text | grep -w -i -B1 VolatileCluster | egrep -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}" | sort -V | uniq )"
+echo $PRE_LOG ADDRPULL=$ADDRPULL
+echo $PRE_LOG "Searching for ready nodes"
+for addr in $ADDRPULL; do
+  masters=$($TRIB check $addr:6379 | grep -c '[M]')
+  [ -z "$masters" ] && masters=0
+  [ $masters -ge 1 ] && ADDRS="$ADDRS "$addr
+done
+
+echo $PRE_LOG Found $ADDRS
 
 # which node should be first master
 FIRST="$(echo $ADDRS | cut -d ' ' -f1)"
@@ -25,10 +34,9 @@ echo $PRE_LOG FIRST=$FIRST
 
 for addr in $ADDRS; do
   # find nodes already in cluster
-  echo $PRE_LOG Cheking $addr
+  echo $PRE_LOG Checking $addr
   masters=$($TRIB check $addr:6379 | grep -c '[M]')
   echo $PRE_LOG Found $masters masters
-  [ -z "$master" ] && master=0
   # node with 3 or more masters attached will be node to connect as slave
   if [ $masters -ge 3 ]; then
     echo Looks like cluster found on $addr

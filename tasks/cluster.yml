@@ -12,6 +12,7 @@
 - name: Install redis gem
   gem:
     name: redis
+    user_install: no
 
 - name: Install redis-trib from localfile.
   copy:
