@@ -26,5 +26,12 @@
     dest: /usr/bin/redis-discovery.sh
     mode: 0755
 
+- name: Install redis-discovery from localfile (python).
+  copy:
+    src: redis-discovery.py
+    dest: /usr/bin/redis-discovery.py
+    mode: 0755
+
 - name: Run cluster discovery script
-  shell: redis-discovery.sh >> /var/log/redis-discovery.log
+##  shell: redis-discovery.sh >> /var/log/redis-discovery.log
+  shell: redis-discovery.py >> /var/log/redis-discovery.log

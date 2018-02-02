@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 import sys,os,socket
 import string,re
 import subprocess
@@ -38,7 +38,7 @@ def printLog(log=""):
 # main
 
 if findMasters("localhost") > 3:
-	sys.exit(0)
+    sys.exit(0)
 
 while True:
 #    """Search for cluster until some found"""

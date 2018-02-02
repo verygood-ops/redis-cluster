@@ -55,7 +55,7 @@ NODES=""
 
 # if no cluster found 
 if [ -z "$MASTER" ]; then
-  # check if  this node should create cluster
+  # check if this node should create cluster
   echo $PRE_LOG No cluster found. Checking if I should create one
   if [ "$LOCAL_ADDR" = "$FIRST" ]; then
     echo $PRE_LOG Yes, I will be the first node in cluster
