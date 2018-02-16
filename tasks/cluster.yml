@@ -14,6 +14,9 @@
     name: redis
     user_install: no
 
+- name: get ec2 facts
+  ec2_facts:
+
 - name: Install redis-trib from localfile.
   copy:
     src: redis-trib.rb
@@ -21,14 +24,14 @@
     mode: 0755
 
 - name: Install redis-discovery from localfile.
-  copy:
-    src: redis-discovery.sh
+  template:
+    src: scripts/redis-discovery.sh.j2
     dest: /usr/bin/redis-discovery.sh
     mode: 0755
 
 - name: Install redis-discovery from localfile (python).
-  copy:
-    src: redis-discovery.py
+  template:
+    src: scripts/redis-discovery.py.j2
     dest: /usr/bin/redis-discovery.py
     mode: 0755
 
