@@ -36,5 +36,9 @@
     mode: 0755
 
 - name: Run cluster discovery script
-##  shell: redis-discovery.sh >> /var/log/redis-discovery.log
   shell: redis-discovery.py >> /var/log/redis-discovery.log
+  when: {{redis_cluster_provisioner}} == 'python'
+
+- name: Run cluster discovery script
+  shell: redis-discovery.sh >> /var/log/redis-discovery.log
+  when: {{redis_cluster_provisioner}} == 'bash'
