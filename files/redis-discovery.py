@@ -76,7 +76,7 @@ while True:
         if masters >= desired_masters:
             printLog("Cluster found on " + str(addr))
             master = addr
-        elif masters < desired_masters and master != "":
+        elif masters < desired_masters and master == "":
             printLog("Two masters cluster found on " + str(addr))
             master = addr
             as_slave = ""
@@ -129,6 +129,7 @@ while True:
                 printLog("Not enough nodes to create cluster")
     else:
                 """Joining existing cluster"""
+                printLog("Joining existing cluster on " + master)
                 try:
                     cmd = subprocess.Popen(trib + " add-node --slave " + local_addr + ":6379 " + master + ":6379 ", shell=True, stdout=subprocess.PIPE)
                     cmd.wait()
