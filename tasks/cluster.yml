@@ -37,8 +37,8 @@
 
 - name: Run cluster discovery script
   shell: redis-discovery.py >> /var/log/redis-discovery.log
-  when: '{{redis_cluster_provisioner}}' == 'python'
+  when: redis_cluster_provisioner == 'python'
 
 - name: Run cluster discovery script
   shell: redis-discovery.sh >> /var/log/redis-discovery.log
-  when: '{{redis_cluster_provisioner}}' == 'bash'
+  when: redis_cluster_provisioner == 'bash'
