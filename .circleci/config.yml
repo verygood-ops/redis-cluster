@@ -11,10 +11,8 @@ jobs:
       - run: 
           name: Install Dependencies
           command: |
-            pip install ansible
-            pip install setuptools --upgrade
+            bundle install
       - run: 
           name: tests
           command: |
-            ansible-playbook -i tests/hosts -c local tests/all.yml --syntax-check
-            ansible-playbook -i tests/hosts -c local tests/all.yml          
+            kitchen test
