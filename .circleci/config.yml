@@ -1,0 +1,21 @@
+# Python CircleCI 2.0 configuration file
+version: 2
+jobs:
+  tests:
+    machine:
+      - image: circleci/classic:latest
+        environment:
+          AWS_DEFAULT_REGION: us-west-2
+    steps:
+      - checkout
+      - run: 
+          name: Install Dependencies
+          command: |
+            pip install ansible
+            pip install setuptools --upgrade
+            ansible-galaxy install -r requirements.yml  -p $(pwd)/roles --force
+      - run: 
+          name: tests
+          command: |
+            ansible-playbook -i tests/hosts -c local tests/all.yml --syntax-check
+            ansible-playbook -i tests/hosts -c local tests/all.yml          
