@@ -1,9 +1,5 @@
 ---
-- hosts: all 
+- hosts: all
   become: yes
-  vars_files:
-    - ../defaults/main.yml
-  vars:
-    - ansible_ec2_placement_region: us-west-2
   roles:
-    - redis-cluster
+    - { role: redis-cluster }
